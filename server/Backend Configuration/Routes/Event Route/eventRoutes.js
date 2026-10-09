@@ -1,5 +1,4 @@
 const express = require("express");
-
 const router = express.Router();
 
 const {
@@ -8,7 +7,8 @@ const {
     getMyEvents,
     getEventById,
     updateEvent,
-    deleteEvent
+    deleteEvent,
+    getEventMetadata
 } = require("../../Controllers/Event Controller/eventController");
 
 const authMiddleware = require(
@@ -19,14 +19,13 @@ const roleMiddleware = require(
     "../../Configuration Folders/Middleware Configuration/roleMiddleware"
 );
 
+// GET METADATA (Categories, Locations)
+router.get("/meta", getEventMetadata);
 
-// GET ALL EVENTS
-// Public
+// GET ALL EVENTS (Public)
 router.get("/", getAllEvents);
 
-// GET MY EVENTS
-// Organizer + Admin
-
+// GET MY EVENTS (Organizer + Admin)
 router.get(
     "/my",
     authMiddleware,
@@ -34,14 +33,10 @@ router.get(
     getMyEvents
 );
 
-
-// GET SINGLE EVENT
-// Public
+// GET SINGLE EVENT (Public)
 router.get("/:id", getEventById);
 
-
-// CREATE EVENT
-// Organizer + Admin
+// CREATE EVENT (Organizer + Admin)
 router.post(
     "/",
     authMiddleware,
@@ -49,9 +44,7 @@ router.post(
     createEvent
 );
 
-
-// UPDATE EVENT
-// Organizer + Admin
+// UPDATE EVENT (Organizer + Admin)
 router.put(
     "/:id",
     authMiddleware,
@@ -59,15 +52,12 @@ router.put(
     updateEvent
 );
 
-
-// DELETE EVENT
-// Organizer + Admin
+// DELETE EVENT (Organizer + Admin)
 router.delete(
     "/:id",
     authMiddleware,
     roleMiddleware("organizer", "admin"),
     deleteEvent
 );
-
 
 module.exports = router;

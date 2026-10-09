@@ -30,6 +30,11 @@ const ticketSchema = new mongoose.Schema(
             required: true
         },
 
+        unitPrice: {
+            type: Number,
+            default: 0
+        },
+
         ticketCode: {
             type: String,
             required: true,
@@ -54,6 +59,12 @@ const ticketSchema = new mongoose.Schema(
 
         checkedInAt: {
             type: Date,
+            default: null
+        },
+
+        checkedInBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             default: null
         }
     },

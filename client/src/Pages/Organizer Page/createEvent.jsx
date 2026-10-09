@@ -1,499 +1,372 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { api } from "../../context/AuthContext";
+import { 
+    Calendar, 
+    Clock, 
+    MapPin, 
+    Plus, 
+    Trash2, 
+    ArrowLeft, 
+    Image as ImageIcon, 
+    Tag, 
+    Sparkles 
+} from "lucide-react";
 
-function CreateEvent() {
-
+const CreateEvent = () => {
     const navigate = useNavigate();
+    const [saving, setSaving] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
     const [event, setEvent] = useState({
         title: "",
         description: "",
-        category: "",
+        category: "Music",
         venue: "",
         location: "",
         date: "",
-        startTime: "",
-        endTime: "",
-        image: "",
-        status: "draft"
+        startTime: "18:00",
+        endTime: "22:00",
+        image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1200&q=80",
+        status: "published"
     });
 
     const [ticketTypes, setTicketTypes] = useState([
-        {
-            name: "",
-            price: 0,
-            capacity: 1
-        }
+        { name: "General Admission", price: 499, capacity: 200 }
     ]);
 
-    const [saving, setSaving] = useState(false);
+    const categories = ["Music", "Tech", "Sports", "Arts", "Workshops", "Travel", "Business", "Entertainment"];
 
-
-    // EVENT INPUT
-    function handleChange(e) {
-
+    const handleChange = (e) => {
         setEvent({
             ...event,
             [e.target.name]: e.target.value
         });
-    }
+    };
 
-
-    // TICKET INPUT
-    function handleTicketChange(index, field, value) {
-
-        const updatedTickets = [...ticketTypes];
-
-        updatedTickets[index] = {
-            ...updatedTickets[index],
-            [field]:
-                field === "price" || field === "capacity"
-                    ? Number(value)
-                    : value
+    const handleTicketChange = (index, field, value) => {
+        const updated = [...ticketTypes];
+        updated[index] = {
+            ...updated[index],
+            [field]: field === "price" || field === "capacity" ? Number(value) : value
         };
+        setTicketTypes(updated);
+    };
 
-        setTicketTypes(updatedTickets);
-    }
-
-
-    // ADD TICKET TYPE
-    function addTicketType() {
-
+    const addTicketType = () => {
         setTicketTypes([
             ...ticketTypes,
-            {
-                name: "",
-                price: 0,
-                capacity: 1
-            }
+            { name: "VIP Pass", price: 999, capacity: 50 }
         ]);
-    }
+    };
 
-
-    // REMOVE TICKET TYPE
-    function removeTicketType(index) {
-
+    const removeTicketType = (index) => {
         if (ticketTypes.length === 1) {
             alert("At least one ticket type is required");
             return;
         }
+        setTicketTypes(ticketTypes.filter((_, idx) => idx !== index));
+    };
 
-        const updatedTickets =
-            ticketTypes.filter(
-                (_, ticketIndex) =>
-                    ticketIndex !== index
-            );
-
-        setTicketTypes(updatedTickets);
-    }
-
-
-    // CREATE EVENT
-    async function handleSubmit(e) {
-
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMsg("");
 
-        if (ticketTypes.length === 0) {
-            alert("Add at least one ticket type");
+        if (!event.title || !event.venue || !event.location || !event.date) {
+            setErrorMsg("Please fill in all required event details");
             return;
         }
 
-        for (const ticket of ticketTypes) {
-
-            if (!ticket.name.trim()) {
-                alert("Ticket name is required");
-                return;
-            }
-
-            if (ticket.price < 0) {
-                alert("Ticket price cannot be negative");
-                return;
-            }
-
-            if (ticket.capacity < 1) {
-                alert("Ticket capacity must be at least 1");
+        for (const t of ticketTypes) {
+            if (!t.name.trim() || t.price < 0 || t.capacity < 1) {
+                setErrorMsg("Each ticket tier must have a valid name, non-negative price, and capacity of at least 1");
                 return;
             }
         }
 
-
+        setSaving(true);
         try {
+            const res = await api.post("/events", {
+                ...event,
+                ticketTypes
+            });
 
-            setSaving(true);
-
-            const token =
-                localStorage.getItem("Token");
-
-            if (!token) {
-                alert("Please login first");
-                navigate("/login");
-                return;
+            if (res.data.success) {
+                alert("🎉 Event created successfully!");
+                navigate("/organizer/events");
             }
-
-
-            const response = await axios.post(
-                "http://localhost:4000/api/events",
-                {
-                    ...event,
-                    ticketTypes
-                },
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            );
-
-
-            alert(response.data.message);
-
-            navigate("/organizer/events");
-
-
-        } catch (error) {
-
-            console.log(error);
-
-            alert(
-                error.response?.data?.message ||
-                "Failed to create event"
-            );
-
+        } catch (err) {
+            console.error("Create event error:", err);
+            setErrorMsg(err.response?.data?.message || "Failed to create event");
         } finally {
-
             setSaving(false);
-
         }
-    }
-
+    };
 
     return (
-        <div>
+        <div className="container" style={{ paddingTop: "2.5rem", paddingBottom: "5rem", maxWidth: 860 }}>
+            {/* Header */}
+            <div style={{ marginBottom: "2rem" }}>
+                <button onClick={() => navigate("/organizer/events")} className="btn btn-secondary btn-sm" style={{ marginBottom: "0.75rem" }}>
+                    <ArrowLeft size={16} /> Back to Events
+                </button>
+                <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>
+                    Event Publisher
+                </span>
+                <h1 style={{ fontSize: "2.25rem", fontWeight: 800, color: "var(--text-main)", margin: "0.25rem 0 0.5rem" }}>
+                    Create New Event
+                </h1>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.9375rem" }}>
+                    Fill in the details below to publish your event and start selling QR-secured tickets.
+                </p>
+            </div>
 
-            <h1>Create New Event</h1>
+            {errorMsg && (
+                <div style={{ padding: "1rem", background: "var(--danger-light)", color: "var(--danger)", borderRadius: "var(--radius-md)", fontWeight: 600, marginBottom: "1.5rem" }}>
+                    {errorMsg}
+                </div>
+            )}
 
-            <button
-                type="button"
-                onClick={() =>
-                    navigate("/organizer/events")
-                }
-            >
-                Back to My Events
-            </button>
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+                {/* 1. Basic Information */}
+                <div className="card">
+                    <h2 style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--text-main)", marginBottom: "1.25rem" }}>
+                        1. Event Details
+                    </h2>
 
-            <hr />
+                    <div className="form-group">
+                        <label className="form-label">Event Title *</label>
+                        <input
+                            type="text"
+                            name="title"
+                            placeholder="e.g. Sunburn Electronic Music Carnival 2026"
+                            value={event.title}
+                            onChange={handleChange}
+                            className="form-input"
+                            required
+                        />
+                    </div>
 
-
-            <form onSubmit={handleSubmit}>
-
-                <h2>Event Details</h2>
-
-
-                <label>
-                    Event Title
-                </label>
-
-                <br />
-
-                <input
-                    type="text"
-                    name="title"
-                    value={event.title}
-                    onChange={handleChange}
-                    placeholder="Enter event title"
-                    required
-                />
-
-                <br />
-                <br />
-
-
-                <label>
-                    Description
-                </label>
-
-                <br />
-
-                <textarea
-                    name="description"
-                    value={event.description}
-                    onChange={handleChange}
-                    placeholder="Enter event description"
-                    required
-                />
-
-                <br />
-                <br />
-
-
-                <label>
-                    Category
-                </label>
-
-                <br />
-
-                <input
-                    type="text"
-                    name="category"
-                    value={event.category}
-                    onChange={handleChange}
-                    placeholder="Example: Music"
-                    required
-                />
-
-                <br />
-                <br />
-
-
-                <label>
-                    Venue
-                </label>
-
-                <br />
-
-                <input
-                    type="text"
-                    name="venue"
-                    value={event.venue}
-                    onChange={handleChange}
-                    placeholder="Example: Sanjay Palace"
-                    required
-                />
-
-                <br />
-                <br />
-
-
-                <label>
-                    Location
-                </label>
-
-                <br />
-
-                <input
-                    type="text"
-                    name="location"
-                    value={event.location}
-                    onChange={handleChange}
-                    placeholder="Example: Agra"
-                    required
-                />
-
-                <br />
-                <br />
-
-
-                <label>
-                    Date
-                </label>
-
-                <br />
-
-                <input
-                    type="date"
-                    name="date"
-                    value={event.date}
-                    onChange={handleChange}
-                    required
-                />
-
-                <br />
-                <br />
-
-
-                <label>
-                    Start Time
-                </label>
-
-                <br />
-
-                <input
-                    type="time"
-                    name="startTime"
-                    value={event.startTime}
-                    onChange={handleChange}
-                    required
-                />
-
-                <br />
-                <br />
-
-
-                <label>
-                    End Time
-                </label>
-
-                <br />
-
-                <input
-                    type="time"
-                    name="endTime"
-                    value={event.endTime}
-                    onChange={handleChange}
-                    required
-                />
-
-                <br />
-                <br />
-
-
-                <label>
-                    Status
-                </label>
-
-                <br />
-
-                <select
-                    name="status"
-                    value={event.status}
-                    onChange={handleChange}
-                >
-                    <option value="draft">
-                        Draft
-                    </option>
-
-                    <option value="published">
-                        Published
-                    </option>
-                </select>
-
-
-                <hr />
-
-
-                <h2>Ticket Types</h2>
-
-
-                {ticketTypes.map(
-                    (ticket, index) => (
-
-                        <div
-                            key={index}
-                            style={{
-                                border: "1px solid black",
-                                padding: "15px",
-                                marginBottom: "15px"
-                            }}
+                    <div className="form-group">
+                        <label className="form-label">Category *</label>
+                        <select
+                            name="category"
+                            value={event.category}
+                            onChange={handleChange}
+                            className="form-select"
+                            required
                         >
+                            {categories.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </div>
 
-                            <h3>
-                                Ticket {index + 1}
-                            </h3>
+                    <div className="form-group">
+                        <label className="form-label">Event Description *</label>
+                        <textarea
+                            name="description"
+                            placeholder="Provide details regarding the event schedule, lineup, age restrictions, and special instructions..."
+                            value={event.description}
+                            onChange={handleChange}
+                            className="form-textarea"
+                            rows={4}
+                            required
+                        />
+                    </div>
 
+                    <div className="form-group">
+                        <label className="form-label">Cover Image URL</label>
+                        <input
+                            type="url"
+                            name="image"
+                            placeholder="https://images.unsplash.com/..."
+                            value={event.image}
+                            onChange={handleChange}
+                            className="form-input"
+                        />
+                        {event.image && (
+                            <div style={{ marginTop: "0.75rem", height: 160, borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+                                <img src={event.image} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-                            <label>
-                                Ticket Name
-                            </label>
+                {/* 2. Venue & Date Schedule */}
+                <div className="card">
+                    <h2 style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--text-main)", marginBottom: "1.25rem" }}>
+                        2. Date, Time & Venue
+                    </h2>
 
-                            <br />
-
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                        <div className="form-group">
+                            <label className="form-label">Venue Name *</label>
                             <input
                                 type="text"
-                                value={ticket.name}
-                                onChange={(e) =>
-                                    handleTicketChange(
-                                        index,
-                                        "name",
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Example: General"
+                                name="venue"
+                                placeholder="e.g. Royal Palace Auditorium"
+                                value={event.venue}
+                                onChange={handleChange}
+                                className="form-input"
                                 required
                             />
-
-                            <br />
-                            <br />
-
-
-                            <label>
-                                Price
-                            </label>
-
-                            <br />
-
-                            <input
-                                type="number"
-                                min="0"
-                                value={ticket.price}
-                                onChange={(e) =>
-                                    handleTicketChange(
-                                        index,
-                                        "price",
-                                        e.target.value
-                                    )
-                                }
-                                required
-                            />
-
-                            <br />
-                            <br />
-
-
-                            <label>
-                                Capacity
-                            </label>
-
-                            <br />
-
-                            <input
-                                type="number"
-                                min="1"
-                                value={ticket.capacity}
-                                onChange={(e) =>
-                                    handleTicketChange(
-                                        index,
-                                        "capacity",
-                                        e.target.value
-                                    )
-                                }
-                                required
-                            />
-
-                            <br />
-                            <br />
-
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    removeTicketType(index)
-                                }
-                            >
-                                Remove Ticket
-                            </button>
-
                         </div>
 
-                    )
-                )}
+                        <div className="form-group">
+                            <label className="form-label">City / Location *</label>
+                            <input
+                                type="text"
+                                name="location"
+                                placeholder="e.g. New Delhi, Mumbai, Agra"
+                                value={event.location}
+                                onChange={handleChange}
+                                className="form-input"
+                                required
+                            />
+                        </div>
+                    </div>
 
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+                        <div className="form-group">
+                            <label className="form-label">Event Date *</label>
+                            <input
+                                type="date"
+                                name="date"
+                                value={event.date}
+                                onChange={handleChange}
+                                className="form-input"
+                                required
+                            />
+                        </div>
 
-                <button
-                    type="button"
-                    onClick={addTicketType}
-                >
-                    + Add Another Ticket Type
-                </button>
+                        <div className="form-group">
+                            <label className="form-label">Start Time *</label>
+                            <input
+                                type="time"
+                                name="startTime"
+                                value={event.startTime}
+                                onChange={handleChange}
+                                className="form-input"
+                                required
+                            />
+                        </div>
 
-                <br />
-                <br />
+                        <div className="form-group">
+                            <label className="form-label">End Time *</label>
+                            <input
+                                type="time"
+                                name="endTime"
+                                value={event.endTime}
+                                onChange={handleChange}
+                                className="form-input"
+                                required
+                            />
+                        </div>
+                    </div>
+                </div>
 
+                {/* 3. Ticket Tiers Configuration */}
+                <div className="card">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+                        <h2 style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--text-main)" }}>
+                            3. Ticket Tiers & Pricing
+                        </h2>
+                        <button type="button" onClick={addTicketType} className="btn btn-secondary btn-sm">
+                            <Plus size={16} /> Add Ticket Tier
+                        </button>
+                    </div>
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                >
-                    {saving
-                        ? "Creating Event..."
-                        : "Create Event"}
-                </button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                        {ticketTypes.map((t, idx) => (
+                            <div key={idx} style={{ padding: "1.25rem", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", background: "var(--bg-main)" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                                    <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--primary)" }}>
+                                        Tier #{idx + 1}
+                                    </span>
+                                    {ticketTypes.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => removeTicketType(idx)}
+                                            style={{ color: "var(--danger)", padding: "0.25rem", display: "flex", alignItems: "center" }}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                </div>
 
+                                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "1rem" }}>
+                                    <div className="form-group" style={{ margin: 0 }}>
+                                        <label className="form-label">Tier Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. General, VIP, Early Bird"
+                                            value={t.name}
+                                            onChange={(e) => handleTicketChange(idx, "name", e.target.value)}
+                                            className="form-input"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="form-group" style={{ margin: 0 }}>
+                                        <label className="form-label">Price (₹)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            placeholder="499"
+                                            value={t.price}
+                                            onChange={(e) => handleTicketChange(idx, "price", e.target.value)}
+                                            className="form-input"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="form-group" style={{ margin: 0 }}>
+                                        <label className="form-label">Capacity</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            placeholder="100"
+                                            value={t.capacity}
+                                            onChange={(e) => handleTicketChange(idx, "capacity", e.target.value)}
+                                            className="form-input"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 4. Publication Status & Submit */}
+                <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <label className="form-label" style={{ margin: 0 }}>Status:</label>
+                        <select
+                            name="status"
+                            value={event.status}
+                            onChange={handleChange}
+                            className="form-select"
+                            style={{ width: "auto" }}
+                        >
+                            <option value="published">Published (Live for bookings)</option>
+                            <option value="draft">Draft (Private)</option>
+                        </select>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="btn btn-primary btn-lg"
+                        style={{ padding: "0.75rem 2rem" }}
+                    >
+                        {saving ? "Publishing Event..." : "Create & Publish Event"}
+                    </button>
+                </div>
             </form>
-
         </div>
     );
-}
+};
 
 export default CreateEvent;
